@@ -68,7 +68,7 @@ function json(bundles, callback) {
     if (browserifyModules.indexOf(module) === -1) return true
   })
 
-  var root = commondir(otherModules.map(pluck('id')))
+  var root = commondir('/', otherModules.map(pluck('id')))
 
   browserifyModules.forEach(function(module) {
     var regex = /^.+\/node_modules\/browserify\/(?:node_modules\/)(.+)$/g
@@ -94,12 +94,16 @@ function json(bundles, callback) {
 
   fileTree(ids, function(id, next) {
     var row = byid[id]
+    if (row) {
+      next(null, {
+          size: row.source.length
+        , deps: Object.keys(row.deps).length
+        , path: id
+      })
+    } else {
+      next(null, { size: 0, deps: 0, path: 'dummy' })
+    }
 
-    next(null, {
-        size: row.source.length
-      , deps: Object.keys(row.deps).length
-      , path: id
-    })
   }, function(err, tree) {
     if (err) return callback(err)
 
@@ -239,6 +243,7 @@ function values(object) {
 }
 
 function isEmpty(module) {
+  if (!module.id) return true;
   return (
     path.basename(module.id) === '_empty.js' &&
   (!fs.existsSync(module.id) || !fs.statSync(module.id).size)
